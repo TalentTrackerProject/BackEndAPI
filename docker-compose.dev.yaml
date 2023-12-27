@@ -17,33 +17,6 @@ services:
                test: ["CMD", "curl", "-f", "http://elastic:root@elasticsearch:9200"]
           networks:
                - elastic
-               - logstash
-               - kibana
-     kibana:
-          image: docker.elastic.co/kibana/kibana:7.15.0
-          container_name: kibana
-          hostname: kibana
-          volumes:
-               - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:rw
-          ports:
-               - "5601:5601"
-          depends_on:
-               - elasticsearch
-          networks:
-               - kibana
-     logstash:
-          image: docker.elastic.co/logstash/logstash:7.15.0
-          container_name: logstash
-          hostname: logstash
-          command: logstash -f /usr/share/logstash/pipeline/logstash.conf
-          volumes:
-               - ./config/logstash:/usr/share/logstash/pipeline/
-          healthcheck:
-               test: ["CMD", "curl", "-f", "http://logstash:9600"]
-          depends_on:
-               - elasticsearch
-          networks:
-               - logstash
      app:
           container_name: app
           build: .
@@ -64,20 +37,7 @@ services:
                     condition: service_healthy
           networks:
                - elastic
-               - logstash
-     cvindexer:
-          container_name: cvindexer
-          build: ./cv-indexer
-          restart: on-failure
-          ports:
-               - "80:80"
-          depends_on:
-               app:
-                    condition: service_healthy
+
 networks:
      elastic:
-          driver: bridge
-     logstash:
-          driver: bridge
-     kibana:
           driver: bridge
