@@ -1,0 +1,27 @@
+version: 2.1
+jobs:
+  unit-test:
+    machine: true
+    steps:
+      - checkout
+      - run: ./mvnw test -Dtest="CvUtilTest"
+      - store_artifacts:
+          path: store-results
+  build-test:
+    machine: true
+    steps:
+      - checkout
+      - run: docker-compose up -d --build elasticsearch logstash
+      - run: docker-compose up -d --build app
+      - run: docker-compose up -d --build cvindexer
+      - run: docker exec -it app ./mvnw test
+      - store_artifacts:
+          path: ~/CVIndexing/features/fail-screenshots
+
+workflows:
+  build-test-deploy:
+    jobs:
+      - unit-test
+      - build-test:
+          requires:
+            - unit-test

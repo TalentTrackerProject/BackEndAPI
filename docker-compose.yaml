@@ -1,0 +1,89 @@
+version: "2.1"
+
+services:
+     elasticsearch:
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+          container_name: elasticsearch
+          hostname: elasticsearch
+          volumes:
+               - elasticsearch:/usr/share/elasticsearch/data
+          environment:
+               ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+               ELASTIC_PASSWORD: "root"
+               xpack.security.enabled: "true"
+               xpack.monitoring.collection.enabled: "true"
+               discovery.type: "single-node"
+          healthcheck:
+               test: ["CMD", "curl", "-f", "http://elastic:root@elasticsearch:9200"]
+          networks:
+               - elastic
+     kibana:
+          image: docker.elastic.co/kibana/kibana:7.15.0
+          container_name: kibana
+          hostname: kibana
+          environment:
+               - xpack.security.enabled=true
+               - SERVER_BASEPATH="/kibana"
+               - 'SERVER_HOST=0.0.0.0'
+               - 'ELASTICSEARCH_URL=http://elasticsearch:9200'
+               - 'ELASTICSEARCH_HOSTS=http://elasticsearch:9200'
+               - 'ELASTICSEARCH_USERNAME=elastic'
+               - 'ELASTICSEARCH_PASSWORD=root'
+          depends_on:
+               - elasticsearch
+          networks:
+               - elastic
+               - publicnetwork
+     logstash:
+          image: docker.elastic.co/logstash/logstash:7.15.0
+          container_name: logstash
+          hostname: logstash
+          command: logstash -f /usr/share/logstash/pipeline/logstash.conf
+          volumes:
+               - ./config/logstash:/usr/share/logstash/pipeline/
+          healthcheck:
+               test: ["CMD", "curl", "-f", "http://logstash:9600"]
+          depends_on:
+               - elasticsearch
+          networks:
+               - elastic
+     app:
+          image: cvindexer_api:0.1
+          container_name: app
+          restart: on-failure
+          environment:
+               ENV_PROFILE: "prod"
+               ELASTIC_ENDPOINT: "elasticsearch:9200"
+          healthcheck:
+               test: ["CMD", "curl", "-f", "http://app:8080/api/v1/cv?keyword=java"]
+          
+          depends_on:
+               elasticsearch:
+                    condition: service_healthy
+               logstash:
+                    condition: service_healthy
+          
+          networks:
+               - elastic
+               - publicnetwork
+     cvindexer:
+          image: cvindexer_app:0.1
+          container_name: cvindexer
+          networks:
+               - publicnetwork
+          restart: on-failure
+          ports:
+               - "80:80"
+
+          depends_on:
+               app:
+                    condition: service_healthy
+networks:
+     elastic:
+          driver: bridge
+     publicnetwork:
+          driver: bridge
+
+volumes:
+     elasticsearch:
+          driver: local
