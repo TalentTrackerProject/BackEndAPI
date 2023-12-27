@@ -11,8 +11,8 @@
 	<groupId>com.indexation</groupId>
 	<artifactId>cv</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>cv</name>
-	<description>Indexation project</description>
+	<name>Talent Tracker</name>
+	<description>Talent Tracker</description>
 	<properties>
 		<java.version>1.8</java.version>
 	</properties>
